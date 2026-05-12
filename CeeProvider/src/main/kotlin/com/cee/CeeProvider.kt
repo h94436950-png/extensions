@@ -8,10 +8,6 @@ import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.newExtractorLink
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import java.net.URLEncoder
 
 class CeeProvider : MainAPI() {
@@ -285,7 +281,7 @@ class CeeProvider : MainAPI() {
     override suspend fun search(
         query: String,
         page: Int
-    ): SearchResponseList? = coroutineScope {
+    ): SearchResponseList? {
 
         val encoded = URLEncoder.encode(query, "utf-8")
 
@@ -303,46 +299,51 @@ class CeeProvider : MainAPI() {
         val seriesUrl =
             "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$yearRange&page=$pageParam&type=series&itemsPerPage=$itemsPerPageSearch"
 
-        val (moviesRawAndParsed, seriesRawAndParsed) =
-            listOf(moviesUrl, seriesUrl).map { url ->
+        val moviesRaw = runCatching {
 
-                async(Dispatchers.IO) {
+            app.get(moviesUrl)
+                .parsedSafe<List<Map<String, Any>>>()
+                ?: emptyList()
 
-                    runCatching {
+        }.getOrElse { emptyList() }
 
-                        val rawResp =
-                            app.get(url)
-                                .parsedSafe<List<Map<String, Any>>>()
+        val seriesRaw = runCatching {
 
-                        val rawSize = rawResp?.size ?: 0
+            app.get(seriesUrl)
+                .parsedSafe<List<Map<String, Any>>>()
+                ?: emptyList()
 
-                        val parsedItems =
-                            rawResp?.mapNotNull { itemMap ->
-                                itemMap.toCinemanaItem().toSearchResponse()
-                            } ?: emptyList()
+        }.getOrElse { emptyList() }
 
-                        Pair(rawSize, parsedItems)
+        val movies = moviesRaw.mapNotNull {
+            it.toCinemanaItem().toSearchResponse()
+        }
 
-                    }.getOrDefault(Pair(0, emptyList()))
-                }
-            }.awaitAll()
-
-        val movies = moviesRawAndParsed.second
-        val series = seriesRawAndParsed.second
+        val series = seriesRaw.mapNotNull {
+            it.toCinemanaItem().toSearchResponse()
+        }
 
         val maxSize = maxOf(movies.size, series.size)
 
         val interleaved =
-            ArrayList<SearchResponse>(movies.size + series.size)
+            mutableListOf<SearchResponse>()
 
         for (i in 0 until maxSize) {
-            if (i < movies.size) interleaved.add(movies[i])
-            if (i < series.size) interleaved.add(series[i])
+
+            if (i < movies.size)
+                interleaved.add(movies[i])
+
+            if (i < series.size)
+                interleaved.add(series[i])
         }
 
-        fun scoreMatch(title: String?, q: String): Int {
+        fun scoreMatch(
+            title: String?,
+            q: String
+        ): Int {
 
-            if (title.isNullOrBlank()) return 0
+            if (title.isNullOrBlank())
+                return 0
 
             val t = title.lowercase()
             val ql = q.lowercase().trim()
@@ -363,6 +364,7 @@ class CeeProvider : MainAPI() {
 
         val sorted = interleaved
             .mapIndexed { idx, item ->
+
                 val titleCandidate =
                     item.name ?: item.url ?: ""
 
@@ -374,16 +376,26 @@ class CeeProvider : MainAPI() {
             .sortedWith(
                 compareByDescending<Triple<SearchResponse, Int, Int>> {
                     it.second
-                }.thenBy { it.third }
+                }.thenBy {
+                    it.third
+                }
             )
-            .map { it.first }
+            .map {
+                it.first
+            }
 
         val finalResults =
-            sorted.distinctBy { "${it.url}-${it.name}" }
+            sorted.distinctBy {
+                "${it.url}-${it.name}"
+            }
 
-        val hasMore = interleaved.isNotEmpty()
+        val hasMore =
+            interleaved.isNotEmpty()
 
-        newSearchResponseList(finalResults, hasMore)
+        return newSearchResponseList(
+            finalResults,
+            hasMore
+        )
     }
 
     private fun CinemanaItem.toActors(): List<ActorData>? {
