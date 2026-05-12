@@ -20,7 +20,7 @@ class CeeProvider : MainAPI() {
     private val itemsPerPageSearch = 30
 
     override val mainPage = mainPageOf(
-        "$apiBase/newlyVideosItems/level/0/offset/12/page/" to "أحدث الإضافات",
+        "$apiBase/newlyVideosItems/level/0/offset/12/page/" to "أضيف مؤخراً",
 
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "أفلام - تاريخ الرفع - الأحدث",
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=asc" to "أفلام - تاريخ الرفع - الأقدم",
@@ -38,6 +38,9 @@ class CeeProvider : MainAPI() {
 
         // Turkish Series
         "$apiBase/video/V/2?videoKind=2&langNb=25&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "مسلسلات تركية",
+
+        // Arabic Series
+        "$apiBase/video/V/2?videoKind=2&langNb=9&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "مسلسلات عربية",
     )
 
     data class CinemanaItem(
