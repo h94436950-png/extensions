@@ -41,6 +41,15 @@ class CeeProvider : MainAPI() {
 
         // Arabic Series
         "$apiBase/video/V/2?videoKind=2&langNb=9&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "مسلسلات عربية",
+        
+        // Korean Series
+        "$apiBase/video/V/2?videoKind=2&langNb=23&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "مسلسلات كورية",
+        
+        // Arabic Dubbed
+        "$apiBase/videoListPagination/groupID/311/level/0/itemsPerPage/30/page/" to "مدبلج عربي",
+        
+        // Arabic Movies
+        "$apiBase/videoListPagination/groupID/376/level/0/itemsPerPage/30/page/" to "أفلام عربية",
     )
 
     data class CinemanaItem(
