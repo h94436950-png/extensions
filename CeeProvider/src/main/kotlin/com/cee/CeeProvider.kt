@@ -17,60 +17,37 @@ class CeeProvider : MainAPI() {
     override var lang = "ar"
     override val hasMainPage = true
 
-    private val apiBase get() = "$mainUrl/api/android"
-    private val itemsPerPageSearch = 20
+    private val apiBase = "$mainUrl/api/android"
 
-    // ── Main page sections ────────────────────────────────────────────────────
-    // request.data encodes: "<paginatedUrl>||PAGE_BASE::<baseTemplate>"
-    // getMainPage appends the page number to the base template.
-    // For simplicity the templates below end with pageNumber= so we can
-    // do: baseTemplate + page.
-    override val mainPage = mainPageOf(
-        "$mainUrl/newlyVideosItems/level/0/offset/12/page/"
-                to "جديد",
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=views_desc&pageNumber="
-                to "أفلام - الأكثر مشاهدة",
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=views_desc&pageNumber="
-                to "مسلسلات - الأكثر مشاهدة",
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=stars_desc&pageNumber="
-                to "أفلام - الأعلى تقييماً",
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=stars_desc&pageNumber="
-                to "مسلسلات - الأعلى تقييماً",
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=asc&pageNumber="
-                to "أفلام - الأحدث",
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=asc&pageNumber="
-                to "مسلسلات - الأحدث",
+    // تعريف الـ data class لاستجابة الصفحة الرئيسية التي تحتوي على items و hasMore
+    data class VideoListResponse(
+        @JsonProperty("items") val items: List<CinemanaItem>?,
+        @JsonProperty("hasMore") val hasMore: Boolean?
     )
 
-    // ── Data classes ──────────────────────────────────────────────────────────
-
-    /**
-     * Core video item returned by list, search and detail APIs.
-     * Constructor signature (12 fields):
-     *   String×6 → Integer → String×3 → List×2
-     */
+    // تعريف باقي الـ data classes كما هي في الكود الأصلي
     data class CinemanaItem(
-        @JsonProperty("nb")          val nb:          String?,
-        @JsonProperty("title")       val title:       String?,
-        @JsonProperty("ar_title")    val arTitle:     String?,
-        @JsonProperty("en_content")  val enContent:   String?,
-        @JsonProperty("ar_content")  val arContent:   String?,
-        @JsonProperty("stars")       val stars:       String?,
-        @JsonProperty("year")        val year:        Int?,
-        @JsonProperty("kind")        val kind:        String?,   // "1"=Movie, "2"=Series
-        @JsonProperty("imgObjUrl")   val imgObjUrl:   String?,
-        @JsonProperty("linkName")    val linkName:    String?,
-        @JsonProperty("actorsInfo")  val actorsInfo:  List<ActorInfo>?,
-        @JsonProperty("categories")  val categories:  List<Category>?
+        @JsonProperty("nb") val nb: String?,
+        @JsonProperty("title") val title: String?,
+        @JsonProperty("ar_title") val arTitle: String?,
+        @JsonProperty("en_content") val enContent: String?,
+        @JsonProperty("ar_content") val arContent: String?,
+        @JsonProperty("stars") val stars: String?,
+        @JsonProperty("year") val year: Int?,
+        @JsonProperty("kind") val kind: String?,
+        @JsonProperty("imgObjUrl") val imgObjUrl: String?,
+        @JsonProperty("linkName") val linkName: String?,
+        @JsonProperty("actorsInfo") val actorsInfo: List<ActorInfo>?,
+        @JsonProperty("categories") val categories: List<Category>?
     )
 
     data class ActorInfo(
-        @JsonProperty("nb")                    val nb:                  String?,
-        @JsonProperty("title")                 val title:               String?,
-        @JsonProperty("role")                  val role:                String?,
-        @JsonProperty("staff_img")             val staffImg:            String?,
+        @JsonProperty("nb") val nb: String?,
+        @JsonProperty("title") val title: String?,
+        @JsonProperty("role") val role: String?,
+        @JsonProperty("staff_img") val staffImg: String?,
         @JsonProperty("staff_img_medium_thumb") val staffImgMediumThumb: String?,
-        @JsonProperty("staff_img_thumb")       val staffImgThumb:       String?
+        @JsonProperty("staff_img_thumb") val staffImgThumb: String?
     )
 
     data class Category(
@@ -78,79 +55,63 @@ class CeeProvider : MainAPI() {
         @JsonProperty("ar_title") val arTitle: String?
     )
 
-    data class VideoListResponse(
-        @JsonProperty("items")   val items:   List<CinemanaItem>?,
-        @JsonProperty("hasMore") val hasMore: Boolean?
-    )
-
-    /** One season with its episodes, from /videoSeason/id/{id} */
     data class SeasonNumberItem(
-        @JsonProperty("season")   val season:   Int?,
+        @JsonProperty("season") val season: Int?,
         @JsonProperty("episodes") val episodes: List<EpisodeItem>?
     )
 
     data class EpisodeItem(
-        @JsonProperty("nb")            val nb:            String?,
-        @JsonProperty("title")         val title:         String?,
+        @JsonProperty("nb") val nb: String?,
+        @JsonProperty("title") val title: String?,
         @JsonProperty("episodeNummer") val episodeNummer: Int?,
-        @JsonProperty("imgObjUrl")     val imgObjUrl:     String?
+        @JsonProperty("imgObjUrl") val imgObjUrl: String?
     )
 
-    /** One transcoded video file from /transcoddedFiles/id/{id} */
     data class VideoFile(
-        @JsonProperty("videoUrl")   val videoUrl:  String?,
+        @JsonProperty("videoUrl") val videoUrl: String?,
         @JsonProperty("resolution") val resolution: String?,
-        @JsonProperty("fileFile")   val fileFile:   String?
+        @JsonProperty("fileFile") val fileFile: String?
     )
 
-    data class VideoGroup(
-        @JsonProperty("id")       val id:      String?,
-        @JsonProperty("en_title") val enTitle: String?,
-        @JsonProperty("ar_title") val arTitle: String?
+    // الصفحة الرئيسية
+    override val mainPage = mainPageOf(
+        "$mainUrl/newlyVideosItems/level/0/offset/12/page/" to "جديد",
+        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=views_desc&pageNumber=" to "أفلام - الأكثر مشاهدة",
+        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=views_desc&pageNumber=" to "مسلسلات - الأكثر مشاهدة",
+        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=stars_desc&pageNumber=" to "أفلام - الأعلى تقييماً",
+        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=stars_desc&pageNumber=" to "مسلسلات - الأعلى تقييماً",
+        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=asc&pageNumber=" to "أفلام - الأحدث",
+        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=asc&pageNumber=" to "مسلسلات - الأحدث",
     )
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
+    // تحويل عنصر إلى SearchResponse
     private fun CinemanaItem.toSearchResponse(): SearchResponse? {
-        val id    = nb?.takeIf { it.isNotBlank() } ?: return null
+        val id = nb?.takeIf { it.isNotBlank() } ?: return null
         val label = arTitle?.takeIf { it.isNotBlank() } ?: title ?: return null
-        val type  = if (kind == "2") TvType.TvSeries else TvType.Movie
-        val url   = "$mainUrl/details/$id"
+        val type = if (kind == "2") TvType.TvSeries else TvType.Movie
+        val url = "$mainUrl/details/$id"
 
         return if (type == TvType.TvSeries) {
             newTvSeriesSearchResponse(label, url, type) {
-                posterUrl      = imgObjUrl
-                this.year      = this@toSearchResponse.year
+                posterUrl = imgObjUrl
+                this.year = this@toSearchResponse.year
             }
         } else {
             newMovieSearchResponse(label, url, type) {
-                posterUrl      = imgObjUrl
-                this.year      = this@toSearchResponse.year
+                posterUrl = imgObjUrl
+                this.year = this@toSearchResponse.year
             }
         }
     }
 
-    private fun CinemanaItem.toActors(): List<ActorData>? =
-        actorsInfo?.mapNotNull { actor ->
-            val actorName = actor.title?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val image = actor.staffImgMediumThumb ?: actor.staffImg
-            ActorData(Actor(actorName, image), roleString = actor.role)
-        }?.takeIf { it.isNotEmpty() }
-
-    private fun CinemanaItem.toTags(): List<String>? =
-        categories?.mapNotNull { cat ->
-            (cat.arTitle?.takeIf { it.isNotBlank() } ?: cat.enTitle)
-        }?.takeIf { it.isNotEmpty() }
-
-    // ── MainPage ──────────────────────────────────────────────────────────────
-
+    // تحميل الصفحة الرئيسية
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        // request.data ends with "pageNumber=" or "page/" — append page directly
         val url = "${request.data}$page"
         return try {
-            val resp   = app.get(url).text
+            val resp = app.get(url).text
+            // التحليل الصحيح: كائن يحوي items و hasMore
             val parsed = tryParseJson<VideoListResponse>(resp)
-            val items  = parsed?.items?.mapNotNull { it.toSearchResponse() } ?: emptyList()
+            val items = parsed?.items?.mapNotNull { it.toSearchResponse() } ?: emptyList()
             newHomePageResponse(
                 listOf(HomePageList(request.name, items, isHorizontalImages = true)),
                 hasNext = parsed?.hasMore ?: false
@@ -161,103 +122,87 @@ class CeeProvider : MainAPI() {
         }
     }
 
-    // ── Search ────────────────────────────────────────────────────────────────
-
+    // البحث
     override suspend fun search(query: String, page: Int): SearchResponseList? {
         val enc = query.encodeUri()
+        val pageParam = page - 1 // 0-indexed
+        val itemsPerPage = 20
 
-        // Calculated API page parameter (0-indexed)
-        val pageParam = page - 1
+        val moviesUrl = "$mainUrl/AdvancedSearch?level=0&videoTitle=$enc&staffTitle=$enc&type=movies&itemsPerPage=$itemsPerPage&pageNumber=$pageParam&year="
+        val seriesUrl = "$mainUrl/AdvancedSearch?level=0&videoTitle=$enc&staffTitle=$enc&type=series&itemsPerPage=$itemsPerPage&pageNumber=$pageParam&year="
 
-        val moviesUrl =
-            "$mainUrl/AdvancedSearch?level=0&videoTitle=$enc&staffTitle=$enc" +
-                    "&type=movies&itemsPerPage=$itemsPerPageSearch&pageNumber=$pageParam&year="
-        val seriesUrl =
-            "$mainUrl/AdvancedSearch?level=0&videoTitle=$enc&staffTitle=$enc" +
-                    "&type=series&itemsPerPage=$itemsPerPageSearch&pageNumber=$pageParam&year="
-
-        val moviesRaw = runCatching {
-            tryParseJson<VideoListResponse>(app.get(moviesUrl).text)?.items ?: emptyList()
-        }.getOrElse { emptyList() }
-
-        val seriesRaw = runCatching {
-            tryParseJson<VideoListResponse>(app.get(seriesUrl).text)?.items ?: emptyList()
-        }.getOrElse { emptyList() }
-
-        // Interleave movies + series, score by title relevance
-        val tokens = query.lowercase().split("\\s+".toRegex()).filter { it.isNotBlank() }
-
-        fun scoreItem(item: CinemanaItem): Int {
-            val haystack = listOfNotNull(item.title, item.arTitle)
-                .joinToString(" ").lowercase()
-            val tokenMatches = tokens.count { haystack.contains(it) }
-            return tokenMatches
+        // البحث في الأفلام والمسلسلات - كلاهما يعيدان نفس بنية VideoListResponse
+        suspend fun fetch(url: String): List<CinemanaItem> {
+            return runCatching {
+                tryParseJson<VideoListResponse>(app.get(url).text)?.items ?: emptyList()
+            }.getOrElse { emptyList() }
         }
 
-        val combined = (moviesRaw + seriesRaw)
+        val movies = fetch(moviesUrl)
+        val series = fetch(seriesUrl)
+
+        // دمج النتائج
+        val combined = (movies + series)
             .distinctBy { it.nb }
-            .sortedByDescending { scoreItem(it) }
             .mapNotNull { it.toSearchResponse() }
 
         return combined.toNewSearchResponseList()
     }
 
-    // ── Load ──────────────────────────────────────────────────────────────────
-
+    // تحميل التفاصيل
     override suspend fun load(url: String): LoadResponse? {
         val id = url.substringAfterLast("/")
         val detailsUrl = "$apiBase/allVideoInfo/id/$id"
 
         val item = tryParseJson<CinemanaItem>(app.get(detailsUrl).text) ?: return null
 
-        val label   = item.arTitle?.takeIf { it.isNotBlank() } ?: item.title ?: return null
-        val plot    = item.arContent?.takeIf { it.isNotBlank() } ?: item.enContent
-        val tags    = item.toTags()
-        val actors  = item.toActors()
+        val label = item.arTitle?.takeIf { it.isNotBlank() } ?: item.title ?: return null
+        val plot = item.arContent?.takeIf { it.isNotBlank() } ?: item.enContent
+        val tags = item.categories?.mapNotNull { it.arTitle ?: it.enTitle }?.takeIf { it.isNotEmpty() }
+        val actors = item.actorsInfo?.mapNotNull { actor ->
+            val actorName = actor.title?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val image = actor.staffImgMediumThumb ?: actor.staffImg
+            ActorData(Actor(actorName, image), roleString = actor.role)
+        }?.takeIf { it.isNotEmpty() }
 
-        return if (item.kind == "2") {
-            // ── TV Series ──────────────────────────────────────────────────
+        return if (item.kind == "2") { // مسلسل
             val seasonsUrl = "$apiBase/videoSeason/id/$id"
-            val seasonsData: List<SeasonNumberItem> = runCatching {
+            val seasonsData = runCatching {
                 tryParseJson<List<SeasonNumberItem>>(app.get(seasonsUrl).text) ?: emptyList()
             }.getOrElse { emptyList() }
 
-            val sortedSeasonNumbers = seasonsData.sortedBy { it.season }
-
-            val episodes = sortedSeasonNumbers.flatMap { seasonItem ->
+            val episodes = seasonsData.sortedBy { it.season }.flatMap { seasonItem ->
                 val seasonNum = seasonItem.season
                 (seasonItem.episodes ?: emptyList()).mapNotNull { ep ->
-                    val epNb = ep.nb?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                    newEpisode(epNb) {
-                        name     = ep.title
-                        season   = seasonNum
-                        episode  = ep.episodeNummer
+                    val epId = ep.nb?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    newEpisode(epId) {
+                        name = ep.title
+                        season = seasonNum
+                        episode = ep.episodeNummer
                         posterUrl = ep.imgObjUrl
                     }
                 }.sortedBy { it.episode }
             }
 
             newTvSeriesLoadResponse(label, url, TvType.TvSeries, episodes) {
-                this.plot      = plot
-                this.year      = item.year
-                this.tags      = tags
+                this.plot = plot
+                this.year = item.year
+                this.tags = tags
                 this.posterUrl = item.imgObjUrl
-                this.actors    = actors
+                this.actors = actors
             }
-        } else {
-            // ── Movie ──────────────────────────────────────────────────────
+        } else { // فيلم
             newMovieLoadResponse(label, url, TvType.Movie, id) {
-                this.plot      = plot
-                this.year      = item.year
-                this.tags      = tags
+                this.plot = plot
+                this.year = item.year
+                this.tags = tags
                 this.posterUrl = item.imgObjUrl
-                this.actors    = actors
+                this.actors = actors
             }
         }
     }
 
-    // ── LoadLinks ─────────────────────────────────────────────────────────────
-
+    // تحميل روابط المشاهدة
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -265,19 +210,17 @@ class CeeProvider : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val linksUrl = "$mainUrl/transcoddedFiles/id/$data"
-        val files = tryParseJson<List<VideoFile>>(app.get(linksUrl).text)
-            ?: return false
+        val files = tryParseJson<List<VideoFile>>(app.get(linksUrl).text) ?: return false
 
-        // Reverse to show highest quality first (6 links typical)
         files.reversed().forEach { file ->
-            val videoUrl   = file.videoUrl ?: return@forEach
+            val videoUrl = file.videoUrl ?: return@forEach
             val resolution = file.resolution?.takeIf { it.isNotBlank() } ?: file.fileFile ?: "Unknown"
-            val quality    = getQualityFromName(resolution.substringBefore("p"))
+            val quality = getQualityFromName(resolution.substringBefore("p"))
             callback(
                 newExtractorLink(
-                    source  = this.name,
-                    name    = "${this.name} ($resolution)",
-                    url     = videoUrl
+                    source = this.name,
+                    name = "${this.name} ($resolution)",
+                    url = videoUrl
                 ) {
                     this.quality = quality
                     this.referer = mainUrl
