@@ -44,7 +44,7 @@ class CeeProvider : MainAPI() {
         @JsonProperty("ar_content") val arContent: String?,
         @JsonProperty("stars") val stars: String?,
         @JsonProperty("year") val year: Int?,
-        @JsonProperty("kind") val kind: Int?,
+        @JsonProperty("kind") val kind: String?,
         @JsonProperty("imgObjUrl") val imgObjUrl: String?,
         @JsonProperty("linkName") val linkName: String?,
         @JsonProperty("actorsInfo") val actorsInfo: List<ActorInfo>?,
@@ -124,13 +124,14 @@ class CeeProvider : MainAPI() {
     private fun CinemanaItem.toSearchResponse(): SearchResponse? {
         val id = nb?.takeIf { it.isNotBlank() } ?: return null
 
-        val label = enTitle?.takeIf { it.isNotBlank() }
-            ?: arTitle?.takeIf { it.isNotBlank() }
-            ?: title
-            ?: return null
+        val label =
+            enTitle?.takeIf { it.isNotBlank() }
+                ?: arTitle?.takeIf { it.isNotBlank() }
+                ?: title
+                ?: return null
 
         val url = "$mainUrl/details/$id"
-        val isSeries = kind == 2
+        val isSeries = kind == "2" || kind?.toIntOrNull() == 2
 
         return if (isSeries) {
             newTvSeriesSearchResponse(label, url, TvType.TvSeries) {
@@ -153,7 +154,11 @@ class CeeProvider : MainAPI() {
                     ?: return@mapNotNull null
 
             val image = actor.staffImgMediumThumb ?: actor.staffImg
-            ActorData(Actor(actorName, image), roleString = actor.role)
+
+            ActorData(
+                Actor(actorName, image),
+                roleString = actor.role
+            )
         }?.takeIf { it.isNotEmpty() }
 
     private fun CinemanaItem.toTags(): List<String>? =
@@ -202,7 +207,7 @@ class CeeProvider : MainAPI() {
             arContent = this["ar_content"] as? String,
             stars = this["stars"]?.toString(),
             year = (this["year"] as? Number)?.toInt() ?: (this["year"] as? String)?.toIntOrNull(),
-            kind = (this["kind"] as? Number)?.toInt() ?: (this["kind"] as? String)?.toIntOrNull(),
+            kind = this["kind"]?.toString(),
             imgObjUrl = this["imgObjUrl"] as? String ?: this["img"] as? String,
             linkName = this["linkName"] as? String,
             actorsInfo = actorsParsed,
@@ -298,22 +303,26 @@ class CeeProvider : MainAPI() {
         val tags = item.toTags()
         val actors = item.toActors()
 
-        return if (item.kind == 2) {
+        return if (item.kind == "2" || item.kind?.toIntOrNull() == 2) {
             val seasonsUrl = "$apiBase/videoSeason/id/$id"
 
-            val episodesResponse = tryParseJson<List<Map<String, Any>>>(
-                app.get(seasonsUrl).text
-            ) ?: emptyList()
+            val episodesResponse = runCatching {
+                tryParseJson<List<Map<String, Any>>>(app.get(seasonsUrl).text) ?: emptyList()
+            }.getOrElse {
+                emptyList()
+            }
 
             val episodes = mutableListOf<Episode>()
+            val seasonsMap = mutableMapOf<Int, MutableList<Episode>>()
 
             episodesResponse.forEach { episodeMap ->
                 val episodeDetails = episodeMap.toCinemanaItem()
                 val episodeId = episodeDetails.nb ?: return@forEach
+
                 val episodeNum = episodeDetails.episodeNummer ?: 1
                 val seasonNum = episodeDetails.season ?: 1
 
-                val newEp = newEpisode(episodeId) {
+                val newEpisode = newEpisode(episodeId) {
                     name = episodeDetails.title
                         ?: episodeDetails.enTitle
                         ?: "الحلقة $episodeNum"
@@ -323,25 +332,29 @@ class CeeProvider : MainAPI() {
                     description = episodeDetails.enContent ?: episodeDetails.arContent
                 }
 
-                episodes.add(newEp)
+                seasonsMap.getOrPut(seasonNum) { mutableListOf() }.add(newEpisode)
             }
 
-            val sortedEpisodes = episodes
-                .sortedWith(compareBy<Episode> { it.season ?: 1 }.thenBy { it.episode ?: 1 })
+            val sortedSeasonNumbers = seasonsMap.keys.sorted()
+            sortedSeasonNumbers.forEach { sNum ->
+                val seasonEpisodes = seasonsMap[sNum]
+                seasonEpisodes?.sortBy { it.episode }
+                if (seasonEpisodes != null) episodes.addAll(seasonEpisodes)
+            }
 
-            newTvSeriesLoadResponse(label, url, TvType.TvSeries, sortedEpisodes) {
+            newTvSeriesLoadResponse(label, url, TvType.TvSeries, episodes) {
+                this.posterUrl = item.imgObjUrl
                 this.plot = plot
                 this.year = item.year
                 this.tags = tags
-                this.posterUrl = item.imgObjUrl
                 this.actors = actors
             }
         } else {
             newMovieLoadResponse(label, url, TvType.Movie, id) {
+                this.posterUrl = item.imgObjUrl
                 this.plot = plot
                 this.year = item.year
                 this.tags = tags
-                this.posterUrl = item.imgObjUrl
                 this.actors = actors
             }
         }
