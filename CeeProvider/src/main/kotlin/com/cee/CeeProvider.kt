@@ -47,6 +47,9 @@ class CeeProvider : MainAPI() {
         
         // Indian Series
         "$apiBase/video/V/2?videoKind=2&langNb=10&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "مسلسلات هندية",
+        
+// Family Movies
+        "$apiBase/video/V/2?videoKind=1&category=65&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "أفلام عائلية",
     )
 
     data class CinemanaItem(
