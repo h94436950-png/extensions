@@ -507,6 +507,10 @@ class CeeProvider : MainAPI() {
                     this.posterUrl =
                         episodeDetails.imgObjUrl
                             ?: posterUrl
+
+                    this.description =
+                        episodeDetails.enContent
+                            ?: episodeDetails.arContent
                 }
 
                 seasonsMap
