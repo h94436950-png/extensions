@@ -21,8 +21,6 @@ class CeeProvider : MainAPI() {
     private val apiBase get() = "$mainUrl/api/android"
     private val itemsPerPageSearch = 20
 
-    // ── Main page sections ────────────────────────────────────────────────────
-
     override val mainPage = mainPageOf(
         "$mainUrl/newlyVideosItems/level/0/offset/12/page/" to "جديد",
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=views_desc&pageNumber=" to "أفلام - الأكثر مشاهدة",
@@ -124,41 +122,34 @@ class CeeProvider : MainAPI() {
     private fun CinemanaItem.toSearchResponse(): SearchResponse? {
         val id = nb?.takeIf { it.isNotBlank() } ?: return null
 
-        val label =
-            enTitle?.takeIf { it.isNotBlank() }
-                ?: arTitle?.takeIf { it.isNotBlank() }
-                ?: title
-                ?: return null
+        val label = enTitle?.takeIf { it.isNotBlank() }
+            ?: arTitle?.takeIf { it.isNotBlank() }
+            ?: title
+            ?: return null
 
         val url = "$mainUrl/details/$id"
-        val isSeries = kind == "2" || kind?.toIntOrNull() == 2
+        val isSeries = kind?.toIntOrNull() == 2
 
         return if (isSeries) {
             newTvSeriesSearchResponse(label, url, TvType.TvSeries) {
                 posterUrl = imgObjUrl
-                this.year = this@toSearchResponse.year
+                year = this@toSearchResponse.year
             }
         } else {
             newMovieSearchResponse(label, url, TvType.Movie) {
                 posterUrl = imgObjUrl
-                this.year = this@toSearchResponse.year
+                year = this@toSearchResponse.year
             }
         }
     }
 
     private fun CinemanaItem.toActors(): List<ActorData>? =
         actorsInfo?.mapNotNull { actor ->
-            val actorName =
-                actor.title?.takeIf { it.isNotBlank() }
-                    ?: actor.name?.takeIf { it.isNotBlank() }
-                    ?: return@mapNotNull null
-
+            val actorName = actor.title?.takeIf { it.isNotBlank() }
+                ?: actor.name?.takeIf { it.isNotBlank() }
+                ?: return@mapNotNull null
             val image = actor.staffImgMediumThumb ?: actor.staffImg
-
-            ActorData(
-                Actor(actorName, image),
-                roleString = actor.role
-            )
+            ActorData(Actor(actorName, image), roleString = actor.role)
         }?.takeIf { it.isNotEmpty() }
 
     private fun CinemanaItem.toTags(): List<String>? =
@@ -234,11 +225,7 @@ class CeeProvider : MainAPI() {
         return try {
             val parsed = parseVideoListResponse(app.get(url).text)
             val items = parsed.items?.mapNotNull { it.toSearchResponse() } ?: emptyList()
-
-            newHomePageResponse(
-                listOf(HomePageList(request.name, items, isHorizontalImages = true)),
-                hasNext = parsed.hasMore ?: false
-            )
+            newHomePageResponse(listOf(HomePageList(request.name, items, isHorizontalImages = true)), hasNext = parsed.hasMore ?: false)
         } catch (e: Exception) {
             logError(e)
             newHomePageResponse(emptyList(), false)
@@ -253,19 +240,11 @@ class CeeProvider : MainAPI() {
         val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
         val yearRange = "1900,$currentYear"
 
-        val moviesUrl =
-            "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$yearRange&page=$pageParam&type=movies&itemsPerPage=$itemsPerPageSearch"
+        val moviesUrl = "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$yearRange&page=$pageParam&type=movies&itemsPerPage=$itemsPerPageSearch"
+        val seriesUrl = "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$yearRange&page=$pageParam&type=series&itemsPerPage=$itemsPerPageSearch"
 
-        val seriesUrl =
-            "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$yearRange&page=$pageParam&type=series&itemsPerPage=$itemsPerPageSearch"
-
-        val moviesRaw = runCatching {
-            parseVideoListResponse(app.get(moviesUrl).text).items ?: emptyList()
-        }.getOrElse { emptyList() }
-
-        val seriesRaw = runCatching {
-            parseVideoListResponse(app.get(seriesUrl).text).items ?: emptyList()
-        }.getOrElse { emptyList() }
+        val moviesRaw = runCatching { parseVideoListResponse(app.get(moviesUrl).text).items ?: emptyList() }.getOrElse { emptyList() }
+        val seriesRaw = runCatching { parseVideoListResponse(app.get(seriesUrl).text).items ?: emptyList() }.getOrElse { emptyList() }
 
         val tokens = query.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
 
@@ -278,11 +257,7 @@ class CeeProvider : MainAPI() {
             return maxOf(exact, starts, contains) + tokenMatches
         }
 
-        val combined = (moviesRaw + seriesRaw)
-            .distinctBy { it.nb }
-            .sortedByDescending { scoreItem(it) }
-            .mapNotNull { it.toSearchResponse() }
-
+        val combined = (moviesRaw + seriesRaw).distinctBy { it.nb }.sortedByDescending { scoreItem(it) }.mapNotNull { it.toSearchResponse() }
         return combined.toNewSearchResponseList()
     }
 
@@ -291,47 +266,32 @@ class CeeProvider : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         val id = url.substringAfterLast("/")
         val detailsUrl = "$apiBase/allVideoInfo/id/$id"
-
         val item = tryParseJson<CinemanaItem>(app.get(detailsUrl).text) ?: return null
 
-        val label = item.enTitle?.takeIf { it.isNotBlank() }
-            ?: item.arTitle?.takeIf { it.isNotBlank() }
-            ?: item.title
-            ?: return null
-
+        val label = item.enTitle?.takeIf { it.isNotBlank() } ?: item.arTitle?.takeIf { it.isNotBlank() } ?: item.title ?: return null
         val plot = item.arContent?.takeIf { it.isNotBlank() } ?: item.enContent
         val tags = item.toTags()
         val actors = item.toActors()
 
-        return if (item.kind == "2" || item.kind?.toIntOrNull() == 2) {
+        return if (item.kind?.toIntOrNull() == 2) {
             val seasonsUrl = "$apiBase/videoSeason/id/$id"
-
-            val episodesResponse = runCatching {
-                tryParseJson<List<Map<String, Any>>>(app.get(seasonsUrl).text) ?: emptyList()
-            }.getOrElse {
-                emptyList()
-            }
-
+            val episodesResponse = runCatching { tryParseJson<List<Map<String, Any>>>(app.get(seasonsUrl).text) ?: emptyList() }.getOrElse { emptyList() }
             val episodes = mutableListOf<Episode>()
             val seasonsMap = mutableMapOf<Int, MutableList<Episode>>()
 
             episodesResponse.forEach { episodeMap ->
-                val episodeDetails = episodeMap.toCinemanaItem()
+                val episodeDetails = episodeMap.toCinemanaItem() ?: return@forEach
                 val episodeId = episodeDetails.nb ?: return@forEach
-
                 val episodeNum = episodeDetails.episodeNummer ?: 1
                 val seasonNum = episodeDetails.season ?: 1
 
                 val newEpisode = newEpisode(episodeId) {
-                    name = episodeDetails.title
-                        ?: episodeDetails.enTitle
-                        ?: "الحلقة $episodeNum"
+                    name = episodeDetails.title ?: episodeDetails.enTitle ?: "الحلقة $episodeNum"
                     season = seasonNum
                     episode = episodeNum
                     posterUrl = episodeDetails.imgObjUrl ?: item.imgObjUrl
                     description = episodeDetails.enContent ?: episodeDetails.arContent
                 }
-
                 seasonsMap.getOrPut(seasonNum) { mutableListOf() }.add(newEpisode)
             }
 
@@ -343,17 +303,17 @@ class CeeProvider : MainAPI() {
             }
 
             newTvSeriesLoadResponse(label, url, TvType.TvSeries, episodes) {
-                this.posterUrl = item.imgObjUrl
-                this.plot = plot
-                this.year = item.year
+                posterUrl = item.imgObjUrl
+                plot = plot
+                year = item.year
                 this.tags = tags
                 this.actors = actors
             }
         } else {
             newMovieLoadResponse(label, url, TvType.Movie, id) {
-                this.posterUrl = item.imgObjUrl
-                this.plot = plot
-                this.year = item.year
+                posterUrl = item.imgObjUrl
+                plot = plot
+                year = item.year
                 this.tags = tags
                 this.actors = actors
             }
@@ -362,12 +322,7 @@ class CeeProvider : MainAPI() {
 
     // ── LoadLinks ─────────────────────────────────────────────────────────────
 
-    override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
+    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         val extractedId = data.substringAfterLast("/").substringBefore("?")
         val videosUrl = "$apiBase/transcoddedFiles/id/$extractedId"
 
@@ -376,24 +331,13 @@ class CeeProvider : MainAPI() {
 
         videoFiles.reversed().forEach { file ->
             val videoUrl = file.videoUrl?.takeIf { it.isNotBlank() } ?: return@forEach
-
-            val resolution =
-                file.resolution?.takeIf { it.isNotBlank() }
-                    ?: file.fileFile?.takeIf { it.isNotBlank() }
-                    ?: "Unknown"
-
+            val resolution = file.resolution?.takeIf { it.isNotBlank() } ?: file.fileFile?.takeIf { it.isNotBlank() } ?: "Unknown"
             val quality = getQualityFromName(resolution.substringBefore("p"))
 
-            callback(
-                newExtractorLink(
-                    source = this.name,
-                    name = "${this.name} ($resolution)",
-                    url = videoUrl
-                ) {
-                    this.quality = quality
-                    this.referer = mainUrl
-                }
-            )
+            callback(newExtractorLink(source = this.name, name = "${this.name} ($resolution)", url = videoUrl) {
+                this.quality = quality
+                this.referer = mainUrl
+            })
         }
 
         val detailsUrl = "$apiBase/allVideoInfo/id/$extractedId"
