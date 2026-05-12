@@ -1,0 +1,138 @@
+[
+    {
+        "iconUrl": "https://cee.buzz/favicon.ico",
+        "jarFileSize": 132138,
+        "fileHash": "sha256-2a804445531d1e46d7f359ba31baefdd8d0088d0746a50bbe35714426833b6b3",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/h94436950-png/extensions",
+        "fileSize": 34022,
+        "status": 1,
+        "language": "ar",
+        "authors": [
+            "Cee"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "CeeProvider",
+        "jarUrl": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/CeeProvider.jar",
+        "description": "Watch content from Cee (cee.buzz)",
+        "url": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/CeeProvider.cs3",
+        "name": "CeeProvider",
+        "jarHash": "sha256-03489db87ee5c31d5c267bc29251ff6ce7f70716b6e3ca69ebe09c1ae2235267"
+    },
+    {
+        "iconUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZlAGH56cEnNEL93W3QqZWpUe8XR8i90olTA&s",
+        "jarFileSize": 132977,
+        "fileHash": "sha256-afa9dbbb6a53f024ba139ec9e478d439d0c82be082739388c2884842d32f1fe6",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/h94436950-png/extensions",
+        "fileSize": 32076,
+        "status": 1,
+        "language": "ar",
+        "authors": [
+            "muxt0"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "CinemanaProvider",
+        "jarUrl": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/CinemanaProvider.jar",
+        "description": "\u0644\u0627 \u064a\u0639\u0645\u0644 \u062e\u0627\u0631\u062c \u0627\u0644\u0639\u0631\u0627\u0642 \u0623\u0648 \u0623\u064a \u0634\u0628\u0643\u0629 \u063a\u064a\u0631 \u0625\u064a\u0631\u062b\u0644\u0646\u0643",
+        "url": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/CinemanaProvider.cs3",
+        "name": "CinemanaProvider",
+        "jarHash": "sha256-96c947e97b6d05c0048410e816084f74d4ba0fb035cf7fb7d236293f395d9469"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.dailymotion.com&sz=%size%",
+        "jarFileSize": 49791,
+        "fileHash": "sha256-9036525a64e8b3c8fe04f94e9fe89a744c13d69af684ed0d2ad2a7eb0f332cd9",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/h94436950-png/extensions",
+        "fileSize": 11472,
+        "status": 1,
+        "authors": [
+            "Luna712"
+        ],
+        "tvTypes": [
+            "Others"
+        ],
+        "version": 4,
+        "internalName": "DailymotionProvider",
+        "jarUrl": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/DailymotionProvider.jar",
+        "description": "Watch content from Dailymotion",
+        "url": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/DailymotionProvider.cs3",
+        "name": "DailymotionProvider",
+        "jarHash": "sha256-542c325f2e1e1f61db60952d161325b62ff58712b1b2020e6df50727fdd03bf2"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=archive.org&sz=%size%",
+        "jarFileSize": 125513,
+        "fileHash": "sha256-54f3de560bebeff2e4a10d1163f6146313c59061d21c3a230125611f01b531eb",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/h94436950-png/extensions",
+        "fileSize": 28037,
+        "status": 1,
+        "authors": [
+            "Luna712"
+        ],
+        "tvTypes": [
+            "Others"
+        ],
+        "version": 1,
+        "internalName": "InternetArchiveProvider",
+        "jarUrl": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/InternetArchiveProvider.jar",
+        "description": "Watch content from the Internet Archive at archive.org",
+        "url": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/InternetArchiveProvider.cs3",
+        "name": "InternetArchiveProvider",
+        "jarHash": "sha256-765f2f7664630c343420019ee86345451f5c950177b0f0319623282bde9bd58f"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=invidious.io&sz=%size%",
+        "jarFileSize": 62289,
+        "fileHash": "sha256-a0a2ff7e8484f69118598d347458774935733399ba0f76ef0d4921886a7db4a9",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/h94436950-png/extensions",
+        "fileSize": 13695,
+        "status": 1,
+        "authors": [
+            "Cloudburst"
+        ],
+        "tvTypes": [
+            "Others"
+        ],
+        "version": 9,
+        "internalName": "InvidiousProvider",
+        "jarUrl": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/InvidiousProvider.jar",
+        "description": "Watch content from any invidious instance",
+        "url": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/InvidiousProvider.cs3",
+        "name": "InvidiousProvider",
+        "jarHash": "sha256-d38e909bceba6c65c47a028a8aadfe83d09da976ffaef9cb2dd35a7c227b8453"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=twitch.tv&sz=%size%",
+        "jarFileSize": 56997,
+        "fileHash": "sha256-a7cc95f77bbd00a311d122201c63babe70b63fb398641fa28bf2b2c77346150a",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/h94436950-png/extensions",
+        "fileSize": 15239,
+        "status": 1,
+        "authors": [
+            "CranberrySoup"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 2,
+        "internalName": "TwitchProvider",
+        "jarUrl": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/TwitchProvider.jar",
+        "description": "Watch livestreams from Twitch",
+        "url": "https://raw.githubusercontent.com/h94436950-png/extensions/builds/TwitchProvider.cs3",
+        "name": "TwitchProvider",
+        "jarHash": "sha256-88086809ed6ccc21cca611ce2ba4f2563b1082486ffda3daa6350da9126b548b"
+    }
+]
