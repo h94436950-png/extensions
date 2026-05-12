@@ -24,8 +24,6 @@ class CeeProvider : MainAPI() {
 
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "أفلام - تاريخ الرفع - الأحدث",
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=asc" to "أفلام - تاريخ الرفع - الأقدم",
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=ar_title_asc" to "أفلام - أبجديًا (أ-ي)",
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=ar_title_desc" to "أفلام - أبجديًا (ب-أ)",
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_desc" to "أفلام - أبجديًا (Z-A)",
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_asc" to "أفلام - أبجديًا (A-Z)",
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=views_desc" to "أفلام - الأكثر مشاهدة",
@@ -33,8 +31,6 @@ class CeeProvider : MainAPI() {
 
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "مسلسلات - تاريخ الرفع - الأحدث",
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=asc" to "مسلسلات - تاريخ الرفع - الأقدم",
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_desc" to "مسلسلات - أبجديًا (أ-ي)",
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_asc" to "مسلسلات - أبجديًا (ي-أ)",
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_desc" to "مسلسلات - أبجديًا (Z-A)",
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_asc" to "مسلسلات - أبجديًا (A-Z)",
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=views_desc" to "مسلسلات - الأكثر مشاهدة",
@@ -42,7 +38,6 @@ class CeeProvider : MainAPI() {
 
         // Turkish Series
         "$apiBase/video/V/2?videoKind=2&langNb=25&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "مسلسلات تركية",
-        "$apiBase/video/V/2?videoKind=2&langNb=25&category=Arabic%20dubbed&itemsPerPage=30&pageNumber=&level=0" to "مسلسلات تركية مدبلجة"
     )
 
     data class CinemanaItem(
@@ -512,9 +507,7 @@ class CeeProvider : MainAPI() {
                         episodeDetails.imgObjUrl
                             ?: posterUrl
 
-                    this.description =
-                        episodeDetails.enContent
-                            ?: episodeDetails.arContent
+                    this.description = null
                 }
 
                 seasonsMap
