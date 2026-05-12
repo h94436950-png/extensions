@@ -8,18 +8,12 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.newExtractorLink
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import android.util.Log
-import org.jsoup.nodes.Element
 import java.net.URLEncoder
 
 class CeeProvider : MainAPI() {
 
     override var mainUrl = "https://cee.buzz"
-    override var name = "cee (\uD83C\uDDEE\uD83C\uDDF6)"
+    override var name = "Cee"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
     override var lang = "ar"
     override val hasMainPage = true
@@ -32,19 +26,11 @@ class CeeProvider : MainAPI() {
 
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "أفلام - تاريخ الرفع - الأحدث",
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=asc" to "أفلام - تاريخ الرفع - الأقدم",
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=ar_title_asc" to "أفلام - أبجديًا (أ-ي)",
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=ar_title_desc" to "أفلام - أبجديًا (ب-أ)",
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_desc" to "أفلام - أبجديًا (Z-A)",
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_asc" to "أفلام - أبجديًا (A-Z)",
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=views_desc" to "أفلام - الأكثر مشاهدة",
         "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=stars_desc" to "أفلام - أعلى تقييم IMDb",
 
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "مسلسلات - تاريخ الرفع - الأحدث",
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=asc" to "مسلسلات - تاريخ الرفع - الأقدم",
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_desc" to "مسلسلات - أبجديًا (أ-ي)",
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_asc" to "مسلسلات - أبجديًا (ي-أ)",
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_desc" to "مسلسلات - أبجديًا (Z-A)",
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_asc" to "مسلسلات - أبجديًا (A-Z)",
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=views_desc" to "مسلسلات - الأكثر مشاهدة",
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=stars_desc" to "مسلسلات - أعلى تقييم IMDb",
     )
@@ -216,19 +202,23 @@ class CeeProvider : MainAPI() {
             enContent = this["en_content"] as? String,
             arContent = this["ar_content"] as? String,
             stars = this["stars"]?.toString(),
-            year = (this["year"] as? Number)?.toInt() ?: (this["year"] as? String)?.toIntOrNull(),
+            year = (this["year"] as? Number)?.toInt()
+                ?: (this["year"] as? String)?.toIntOrNull(),
             kind = this["kind"]?.toString(),
             imgObjUrl = this["imgObjUrl"] as? String ?: this["img"] as? String,
             linkName = this["linkName"] as? String,
             actorsInfo = actorsParsed,
             categories = categoriesParsed,
-            episodeNummer = (this["episodeNummer"] as? Number)?.toInt() ?: (this["episodeNummer"] as? String)?.toIntOrNull(),
-            season = (this["season"] as? Number)?.toInt() ?: (this["season"] as? String)?.toIntOrNull()
+            episodeNummer = (this["episodeNummer"] as? Number)?.toInt()
+                ?: (this["episodeNummer"] as? String)?.toIntOrNull(),
+            season = (this["season"] as? Number)?.toInt()
+                ?: (this["season"] as? String)?.toIntOrNull()
         )
     }
 
     private fun Map<String, Any>.toVideoFile(): VideoFile? {
         val videoUrl = this["videoUrl"] as? String ?: return null
+
         return VideoFile(
             videoUrl = videoUrl,
             resolution = this["resolution"] as? String,
@@ -237,411 +227,182 @@ class CeeProvider : MainAPI() {
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val items = mutableListOf<HomePageList>()
-        var hasMore = false
+        val url = "${request.data}$page"
 
-        val requestData = request.data ?: ""
-        if (requestData.isNotBlank()) {
+        return try {
+            val parsed = parseVideoListResponse(app.get(url).text)
+            val items = parsed.items?.mapNotNull { it.toSearchResponse() } ?: emptyList()
 
-            val fetchUrl = when {
-                requestData.contains("/page/") -> {
-                    if (requestData.endsWith("/page/"))
-                        "$requestData$page/"
-                    else
-                        requestData.replace(Regex("/page/\\d+/?$"), "/page/$page/")
-                }
-
-                requestData.contains("pageNumber=") -> {
-                    val zeroBasedPage = page - 1
-                    val replaced = requestData.replace(
-                        Regex("pageNumber=\\d*"),
-                        "pageNumber=$zeroBasedPage"
+            newHomePageResponse(
+                listOf(
+                    HomePageList(
+                        request.name,
+                        items,
+                        isHorizontalImages = true
                     )
-
-                    if (replaced == requestData) {
-                        if (requestData.contains("?"))
-                            "$requestData&pageNumber=$zeroBasedPage"
-                        else
-                            "$requestData?pageNumber=$zeroBasedPage"
-                    } else replaced
-                }
-
-                else -> {
-                    if (requestData.endsWith("/"))
-                        "$requestData$page/"
-                    else
-                        "$requestData/$page/"
-                }
-            }
-
-            val resp = runCatching { app.get(fetchUrl).parsedSafe<List<Map<String, Any>>>() }.getOrNull()
-            val parsed = resp?.mapNotNull { it.toCinemanaItem()?.toSearchResponse() } ?: emptyList()
-
-            val listTitle = request.name ?: "القسم"
-            items.add(HomePageList(listTitle, parsed))
-
-            val rawSize = resp?.size ?: parsed.size
-            hasMore = rawSize >= 24 || rawSize >= 30 || rawSize >= 12
-
-            return newHomePageResponse(items, hasNext = hasMore)
+                ),
+                hasNext = parsed.hasMore ?: false
+            )
+        } catch (e: Exception) {
+            logError(e)
+            newHomePageResponse(emptyList(), false)
         }
-
-        val newlyVideosUrl = "$apiBase/newlyVideosItems/level/0/offset/12/page/$page/"
-
-        val newlyResp = runCatching { app.get(newlyVideosUrl).parsedSafe<List<Map<String, Any>>>() }.getOrNull()
-        newlyResp?.let { response ->
-            if (response.isNotEmpty()) {
-                val newlyVideos = response.mapNotNull { it.toCinemanaItem()?.toSearchResponse() }
-                if (newlyVideos.isNotEmpty()) {
-                    items.add(HomePageList("أحدث الإضافات", newlyVideos))
-                    if (response.size >= 12) hasMore = true
-                }
-            }
-        }
-
-        try {
-            @Suppress("UNCHECKED_CAST")
-            val mainEntries = this.mainPage as? List<Pair<String, String>>
-            if (!mainEntries.isNullOrEmpty()) {
-
-                for ((baseTemplate, title) in mainEntries) {
-
-                    val firstUrl = when {
-                        baseTemplate.contains("/page/") && baseTemplate.endsWith("/page/") ->
-                            "$baseTemplate/0".replace("//0", "/0").replace("/page//0", "/page/0")
-                        baseTemplate.contains("/page/") ->
-                            baseTemplate.replace(Regex("/page/\\d+/?$"), "/page/0/")
-                        baseTemplate.contains("page=") && baseTemplate.endsWith("page=") ->
-                            "${baseTemplate}0"
-                        baseTemplate.contains("page=") ->
-                            baseTemplate.replace(Regex("page=\\d*"), "page=0")
-                        else -> baseTemplate
-                    }.replace(":/", "://").replace(Regex("([^:])/+"), "$1/")
-
-                    val pageResp = runCatching { app.get(firstUrl).parsedSafe<List<Map<String, Any>>>() }.getOrNull()
-                    val parsedList = pageResp?.mapNotNull { it.toCinemanaItem()?.toSearchResponse() } ?: emptyList()
-
-                    if (parsedList.isNotEmpty()) {
-                        val hp = HomePageList(title, parsedList)
-
-                        val candidateFieldNames = listOf("data", "requestData", "request", "pageUrl", "url", "extra", "nextPage", "params", "metadata")
-                        var attached: String? = null
-                        for (fName in candidateFieldNames) {
-                            try {
-                                val f = hp.javaClass.getDeclaredField(fName)
-                                f.isAccessible = true
-                                f.set(hp, baseTemplate)
-                                attached = fName
-                                break
-                            } catch (_: NoSuchFieldException) {
-                            } catch (_: Exception) {
-                            }
-                        }
-
-                        if (attached == null) {
-                            val titleWithMeta = "$title ||PAGE_BASE::$baseTemplate"
-                            items.add(HomePageList(titleWithMeta, parsedList))
-                        } else {
-                            items.add(hp)
-                        }
-                    }
-                }
-            }
-        } catch (_: Exception) {
-        }
-
-        if (items.isEmpty() && page == 1) {
-            val videoGroupsUrl = "$apiBase/videoGroups/lang/ar/level/0"
-            val groups = runCatching { app.get(videoGroupsUrl).parsedSafe<List<VideoGroup>>() }.getOrNull()
-            groups?.forEach { group ->
-                val gid = group.id ?: return@forEach
-                val gTitle = group.title ?: "مجموعة غير معروفة"
-                val basePage = "$apiBase/videoListPagination/groupID/$gid/level/0/itemsPerPage/24/page/"
-                val first = if (basePage.endsWith("/page/")) "$basePage/0".replace("//0", "/0").replace("/page//0", "/page/0") else "$basePage/0"
-                val normalizedFirst = first.replace(":/", "://").replace("//", "/").replace(":/", "://")
-
-                val grpResp = runCatching { app.get(normalizedFirst).parsedSafe<List<Map<String, Any>>>() }.getOrNull()
-                val grpParsed = grpResp?.mapNotNull { it.toCinemanaItem()?.toSearchResponse() } ?: emptyList()
-                if (grpParsed.isNotEmpty()) {
-                    val list = HomePageList(gTitle, grpParsed)
-                    var attachedFieldName: String? = null
-                    val candidateFieldNames = listOf("data", "requestData", "request", "pageUrl", "url", "extra", "nextPage", "params", "metadata")
-                    for (fieldName in candidateFieldNames) {
-                        try {
-                            val f = list.javaClass.getDeclaredField(fieldName)
-                            f.isAccessible = true
-                            f.set(list, basePage)
-                            attachedFieldName = fieldName
-                            break
-                        } catch (_: NoSuchFieldException) {
-                        } catch (_: Exception) {
-                        }
-                    }
-                    if (attachedFieldName == null) {
-                        val titleWithMeta = "$gTitle ||PAGE_BASE::$basePage"
-                        items.add(HomePageList(titleWithMeta, grpParsed))
-                    } else {
-                        items.add(list)
-                    }
-                }
-            }
-        }
-
-        return newHomePageResponse(items, hasNext = hasMore)
     }
 
-    override suspend fun search(query: String): List<SearchResponse>? {
-        return search(query, 1)?.items
-    }
-
-    override suspend fun search(query: String, page: Int): SearchResponseList? = coroutineScope {
+    override suspend fun search(query: String, page: Int): SearchResponseList? {
         val encoded = URLEncoder.encode(query, "utf-8")
-        val itemsPerPageSearch = 30
-        val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
+        val pageParam = (page - 1).coerceAtLeast(0)
+
+        val currentYear = java.util.Calendar
+            .getInstance()
+            .get(java.util.Calendar.YEAR)
+
         val yearRange = "1900,$currentYear"
 
-        val pageParam_0_indexed = (page - 1).coerceAtLeast(0)
-
-        Log.d(name, "🔎 [SEARCH_PAGINATION] Initiating search for query: '$query', requested page: $page")
-
         val moviesUrl =
-            "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$yearRange&page=$pageParam_0_indexed&type=movies&itemsPerPage=$itemsPerPageSearch"
+            "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$yearRange&page=$pageParam&type=movies&itemsPerPage=$itemsPerPageSearch"
+
         val seriesUrl =
-            "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$yearRange&page=$pageParam_0_indexed&type=series&itemsPerPage=$itemsPerPageSearch"
+            "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$yearRange&page=$pageParam&type=series&itemsPerPage=$itemsPerPageSearch"
 
-        val (moviesRawAndParsed, seriesRawAndParsed) = listOf(moviesUrl, seriesUrl).map { url ->
-            async(Dispatchers.IO) {
-                runCatching {
-                    val rawResp = app.get(url).parsedSafe<List<Map<String, Any>>>()
-                    val rawSize = rawResp?.size ?: 0
+        val moviesRaw = runCatching {
+            parseVideoListResponse(app.get(moviesUrl).text).items ?: emptyList()
+        }.getOrElse { emptyList() }
 
-                    val parsedItems = rawResp?.mapNotNull { itemMap ->
-                        val cinemanaItem = itemMap.toCinemanaItem()
-                        if (cinemanaItem == null) {
-                            Log.w(name, "⚠️ [SEARCH_PAGINATION_PARSE_WARN] CinemanaItem is NULL for item from $url. Raw Map: $itemMap")
-                        }
-                        val searchResponse = cinemanaItem?.toSearchResponse()
-                        if (searchResponse == null) {
-                            Log.w(name, "⚠️ [SEARCH_PAGINATION_PARSE_WARN] toSearchResponse returned NULL for item from $url. CinemanaItem: $cinemanaItem")
-                        }
-                        searchResponse
-                    } ?: emptyList()
+        val seriesRaw = runCatching {
+            parseVideoListResponse(app.get(seriesUrl).text).items ?: emptyList()
+        }.getOrElse { emptyList() }
 
-                    Log.d(name, "✨ [SEARCH_PAGINATION] PARSED ${parsedItems.size} valid items from $url (after filtering null IDs/responses).")
-                    Pair(rawSize, parsedItems)
-                }.getOrDefault(Pair(0, emptyList()))
-            }
-        }.awaitAll()
+        val tokens = query.lowercase()
+            .split(Regex("\\s+"))
+            .filter { it.isNotBlank() }
 
-        val moviesRawCount = moviesRawAndParsed.first
-        val movies = moviesRawAndParsed.second
+        fun scoreItem(item: CinemanaItem): Int {
+            val haystack = listOfNotNull(item.enTitle, item.arTitle, item.title)
+                .joinToString(" ")
+                .lowercase()
 
-        val seriesRawCount = seriesRawAndParsed.first
-        val series = seriesRawAndParsed.second
+            val exact = if (haystack == query.lowercase().trim()) 100 else 0
+            val starts = if (haystack.startsWith(query.lowercase().trim())) 80 else 0
+            val contains = if (haystack.contains(query.lowercase().trim())) 60 else 0
+            val tokenMatches = tokens.count { haystack.contains(it) }
 
-        Log.d(name, "🎬 [SEARCH_PAGINATION] Movies: RAW=${moviesRawCount}, PARSED=${movies.size} for page $page.")
-        Log.d(name, "📺 [SEARCH_PAGINATION] Series: RAW=${seriesRawCount}, PARSED=${series.size} for page $page.")
-
-        val maxSize = maxOf(movies.size, series.size)
-        val interleaved = ArrayList<SearchResponse>(movies.size + series.size)
-        for (i in 0 until maxSize) {
-            if (i < movies.size) interleaved.add(movies[i])
-            if (i < series.size) interleaved.add(series[i])
+            return maxOf(exact, starts, contains) + tokenMatches
         }
 
-        Log.d(name, "🔄 [SEARCH_PAGINATION] Interleaved ${interleaved.size} items in total for page $page.")
+        val combined = (moviesRaw + seriesRaw)
+            .distinctBy { it.nb }
+            .sortedByDescending { scoreItem(it) }
+            .mapNotNull { it.toSearchResponse() }
 
-        fun scoreMatch(title: String?, q: String): Int {
-            if (title.isNullOrBlank()) return 0
-            val t = title.lowercase()
-            val ql = q.lowercase().trim()
-            if (t == ql) return 100
-            if (t.startsWith(ql)) return 80
-            if (t.contains(ql)) return 60
-            val tokens = ql.split(Regex("\\s+")).filter { it.isNotBlank() }
-            val tokenMatches = tokens.count { t.contains(it) }
-            return 40 + tokenMatches
-        }
-
-        val sorted = interleaved
-            .mapIndexed { idx, item ->
-                val titleCandidate = item.name ?: item.url ?: ""
-                val score = scoreMatch(titleCandidate, query)
-                Triple(item, score, idx)
-            }
-            .sortedWith(
-                compareByDescending<Triple<SearchResponse, Int, Int>> { it.second }
-                    .thenBy { it.third }
-            )
-            .map { it.first }
-
-        val finalResults = sorted.distinctBy { "${it.url ?: ""}-${it.name ?: ""}" }
-
-        var hasMore = interleaved.isNotEmpty()
-
-        Log.d(name, "🤔 [SEARCH_PAGINATION] Determining 'hasMore' using interleaved.isNotEmpty() logic.")
-
-        if (finalResults.isEmpty() && page == 1) {
-            val fallbackYearRange = "1900,2024"
-
-            val moviesUrlFb =
-                "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$fallbackYearRange&page=$pageParam_0_indexed&type=movies&itemsPerPage=$itemsPerPageSearch"
-            val seriesUrlFb =
-                "$apiBase/AdvancedSearch?level=0&videoTitle=$encoded&staffTitle=$encoded&year=$fallbackYearRange&page=$pageParam_0_indexed&type=series&itemsPerPage=$itemsPerPageSearch"
-
-            val (moviesFbRawAndParsed, seriesFbRawAndParsed) = listOf(moviesUrlFb, seriesUrlFb).map { url ->
-                async(Dispatchers.IO) {
-                    runCatching {
-                        val rawResp = app.get(url).parsedSafe<List<Map<String, Any>>>()
-                        val rawSize = rawResp?.size ?: 0
-
-                        val parsedItems = rawResp?.mapNotNull { itemMap ->
-                            val cinemanaItem = itemMap.toCinemanaItem()
-                            cinemanaItem?.toSearchResponse()
-                        } ?: emptyList()
-
-                        Pair(rawSize, parsedItems)
-                    }.getOrDefault(Pair(0, emptyList()))
-                }
-            }.awaitAll()
-
-            val moviesFb = moviesFbRawAndParsed.second
-            val seriesFb = seriesFbRawAndParsed.second
-
-            val maxFb = maxOf(moviesFb.size, seriesFb.size)
-            val interleavedFb = ArrayList<SearchResponse>(moviesFb.size + seriesFb.size)
-            for (i in 0 until maxFb) {
-                if (i < moviesFb.size) interleavedFb.add(moviesFb[i])
-                if (i < seriesFb.size) interleavedFb.add(seriesFb[i])
-            }
-
-            val sortedFb = interleavedFb
-                .mapIndexed { idx, item ->
-                    val titleCandidate = item.name ?: item.url ?: ""
-                    val score = scoreMatch(titleCandidate, query)
-                    Triple(item, score, idx)
-                }
-                .sortedWith(
-                    compareByDescending<Triple<SearchResponse, Int, Int>> { it.second }
-                        .thenBy { it.third }
-                )
-                .map { it.first }
-                .distinctBy { "${it.url ?: ""}-${it.name ?: ""}" }
-
-            if (sortedFb.isNotEmpty()) {
-                hasMore = interleavedFb.isNotEmpty()
-                return@coroutineScope newSearchResponseList(sortedFb, hasMore)
-            }
-        }
-
-        Log.d(name, "✅ [SEARCH_PAGINATION] Search for query: '$query', page: $page completed. Returning ${finalResults.size} items with hasMore: $hasMore.")
-        newSearchResponseList(finalResults, hasMore)
+        return combined.toNewSearchResponseList()
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val extractedId = url.substringAfterLast("/")
-        val detailsUrl = "$mainUrl/api/android/allVideoInfo/id/$extractedId"
-        Log.d(name, "Loading details for URL: $detailsUrl (Using extracted ID: $extractedId from input URL: $url)")
+        val id = url.substringAfterLast("/")
+        val detailsUrl = "$apiBase/allVideoInfo/id/$id"
 
-        val detailsMap = app.get(detailsUrl).parsedSafe<Map<String, Any>>()
-        if (detailsMap == null) {
-            Log.e(name, "Failed to parse details from: $detailsUrl. Response might be empty or malformed.")
-            return null
-        }
+        val item = tryParseJson<CinemanaItem>(app.get(detailsUrl).text)
+            ?: return null
 
-        val details = detailsMap.toCinemanaItem()
+        val label = item.enTitle?.takeIf { it.isNotBlank() }
+            ?: item.arTitle?.takeIf { it.isNotBlank() }
+            ?: item.title
+            ?: return null
 
-        val title = details.enTitle ?: run { return null }
-        val posterUrl = details.imgObjUrl
-        val plot = details.enContent
-        val year = details.year?.toIntOrNull()
+        val plotText =
+            item.arContent?.takeIf { it.isNotBlank() } ?: item.enContent
 
-        val ratingFloatPrimary = details.stars?.toFloatOrNull()
+        val tags = item.toTags()
+        val actors = item.toActors()
+        val itemYear = item.year
 
-        val finalRatingScore: Score? = ratingFloatPrimary?.let { Score.from10(it) } ?: run {
-            val altCandidates = listOf("rate", "filmRating", "seriesRating")
-            altCandidates.mapNotNull { k ->
-                val raw = detailsMap[k]
-                val asFloat = when (raw) {
-                    is Number -> raw.toDouble().toFloat()
-                    is String -> raw.toFloatOrNull()
-                    else -> null
-                }
-                asFloat?.let { Score.from10(it) }
-            }.firstOrNull()
-        }
+        return if (item.kind?.toIntOrNull() == 2) {
 
-        val genresList = details.categories
-            ?.mapNotNull { cat ->
-                cat.en_title?.takeIf { it.isNotBlank() } ?: cat.ar_title?.takeIf { it.isNotBlank() }
-            }
-            ?.distinct()
-            ?: emptyList()
+            val seasonsUrl = "$apiBase/videoSeason/id/$id"
 
-        val actorsList: List<ActorData> = details.actorsInfo?.mapNotNull { actorInfoItem ->
-            val actorName =
-                actorInfoItem.name?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
-            val actorImageUrl = actorInfoItem.staff_img_thumb ?: actorInfoItem.staff_img ?: "defaultImages/not_available.jpg"
+            val episodesResponse = runCatching {
+                tryParseJson<List<Map<String, Any>>>(
+                    app.get(seasonsUrl).text
+                ) ?: emptyList()
+            }.getOrElse { emptyList() }
 
-            ActorData(
-                actor = Actor(
-                    name = actorName,
-                    image = actorImageUrl
-                ),
-                roleString = null
-            )
-        } ?: emptyList()
-
-        return if (details.kind == 2) {
-            val seasonsAndEpisodesUrl = "$mainUrl/api/android/videoSeason/id/$extractedId"
-
-            val episodesResponse = app.get(seasonsAndEpisodesUrl).parsedSafe<List<Map<String, Any>>>()
             val episodes = mutableListOf<Episode>()
             val seasonsMap = mutableMapOf<Int, MutableList<Episode>>()
 
-            episodesResponse?.forEach { episodeMap ->
-                val episodeDetails = episodeMap.toCinemanaItem()
-                if (episodeDetails.nb != null && episodeDetails.enTitle != null) {
-                    val episodeNum = (episodeDetails.episodeNummer as? String)?.toIntOrNull() ?: 1
-                    val seasonNum = (episodeDetails.season as? String)?.toIntOrNull() ?: 1
-                    val episodeTitle = "الموسم $seasonNum - الحلقة $episodeNum"
+            episodesResponse.forEach { episodeMap ->
 
-                    val newEpisode = newEpisode(episodeDetails.nb) {
-                        this.name = episodeTitle
-                        this.season = seasonNum
-                        this.episode = episodeNum
-                        this.posterUrl = episodeDetails.imgObjUrl ?: posterUrl
-                        this.description = episodeDetails.enContent
-                    }
-                    seasonsMap.getOrPut(seasonNum) { mutableListOf() }.add(newEpisode)
-                } else {
-                    Log.w(name, "Skipping malformed episode item: $episodeMap for series ID: $extractedId")
+                val episodeDetails =
+                    episodeMap.toCinemanaItem() ?: return@forEach
+
+                val episodeId =
+                    episodeDetails.nb ?: return@forEach
+
+                val episodeNum =
+                    episodeDetails.episodeNummer ?: 1
+
+                val seasonNum =
+                    episodeDetails.season ?: 1
+
+                val newEpisode = newEpisode(episodeId) {
+                    name =
+                        episodeDetails.title
+                            ?: episodeDetails.enTitle
+                            ?: "الحلقة $episodeNum"
+
+                    season = seasonNum
+                    episode = episodeNum
+                    posterUrl =
+                        episodeDetails.imgObjUrl ?: item.imgObjUrl
+
+                    description =
+                        episodeDetails.enContent
+                            ?: episodeDetails.arContent
                 }
+
+                seasonsMap
+                    .getOrPut(seasonNum) { mutableListOf() }
+                    .add(newEpisode)
             }
 
-            val sortedSeasonNumbers = seasonsMap.keys.sorted()
+            val sortedSeasonNumbers =
+                seasonsMap.keys.sorted()
+
             sortedSeasonNumbers.forEach { sNum ->
                 val seasonEpisodes = seasonsMap[sNum]
                 seasonEpisodes?.sortBy { it.episode }
-                if (seasonEpisodes != null) episodes.addAll(seasonEpisodes)
+
+                if (seasonEpisodes != null) {
+                    episodes.addAll(seasonEpisodes)
+                }
             }
 
-            newTvSeriesLoadResponse(title, extractedId, TvType.TvSeries, episodes) {
-                this.posterUrl = posterUrl
-                this.plot = plot
-                this.year = year
-                this.score = finalRatingScore
-                if (genresList.isNotEmpty()) this.tags = genresList
-                if (actorsList.isNotEmpty()) this.actors = actorsList
+            newTvSeriesLoadResponse(
+                label,
+                url,
+                TvType.TvSeries,
+                episodes
+            ) {
+                this.posterUrl = item.imgObjUrl
+                this.plot = plotText
+                this.year = itemYear
+                this.tags = tags
+                this.actors = actors
             }
+
         } else {
-            newMovieLoadResponse(title, extractedId, TvType.Movie, extractedId) {
-                this.posterUrl = posterUrl
-                this.plot = plot
-                this.year = year
-                this.score = finalRatingScore
-                if (genresList.isNotEmpty()) this.tags = genresList
-                if (actorsList.isNotEmpty()) this.actors = actorsList
+
+            newMovieLoadResponse(
+                label,
+                url,
+                TvType.Movie,
+                id
+            ) {
+                this.posterUrl = item.imgObjUrl
+                this.plot = plotText
+                this.year = itemYear
+                this.tags = tags
+                this.actors = actors
             }
         }
     }
@@ -652,46 +413,68 @@ class CeeProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val extractedId = data.substringAfterLast("/")
 
-        val videosUrl = "$apiBase/transcoddedFiles/id/$extractedId"
-        val videoResponse = app.get(videosUrl).parsedSafe<List<Map<String, Any>>>()
+        val extractedId =
+            data.substringAfterLast("/")
+                .substringBefore("?")
 
-        if (videoResponse.isNullOrEmpty()) {
-            Log.e(name, "Failed to get video links from $videosUrl or response was empty for ID: $extractedId")
-            return false
-        }
+        val videosUrl =
+            "$apiBase/transcoddedFiles/id/$extractedId"
 
-        Log.d(name, "Received ${videoResponse.size} links. Reversing order to show highest quality first.")
+        val videoFiles =
+            parseVideoFiles(app.get(videosUrl).text)
 
-        videoResponse.reversed().forEach { videoMap ->
-            val videoUrl = videoMap["videoUrl"] as? String
-            val resolution = videoMap["resolution"] as? String
-            val linkName = resolution ?: "Default"
+        if (videoFiles.isEmpty()) return false
 
-            if (videoUrl != null) {
-                callback(
-                    newExtractorLink(
-                        source = name,
-                        name = linkName,
-                        url = videoUrl
-                    ) {
-                        this.quality = getQualityFromName(resolution)
-                        this.referer = mainUrl
-                    }
-                )
-            }
-        }
+        videoFiles.reversed().forEach { file ->
 
-        val detailsUrl = "$apiBase/allVideoInfo/id/$extractedId"
-        app.get(detailsUrl).parsedSafe<Map<String, Any>>()?.let { detailsMap ->
-            (detailsMap["translations"] as? List<Map<String, Any>>)?.forEach { sub ->
-                val file = sub["file"] as? String
-                val lang = sub["name"] as? String
-                if (file != null && lang != null) {
-                    subtitleCallback(SubtitleFile(lang, file))
+            val videoUrl =
+                file.videoUrl?.takeIf { it.isNotBlank() }
+                    ?: return@forEach
+
+            val resolution =
+                file.resolution?.takeIf { it.isNotBlank() }
+                    ?: file.fileFile?.takeIf { it.isNotBlank() }
+                    ?: "Unknown"
+
+            val quality =
+                getQualityFromName(resolution.substringBefore("p"))
+
+            callback(
+                newExtractorLink(
+                    source = this.name,
+                    name = "${this.name} ($resolution)",
+                    url = videoUrl
+                ) {
+                    this.quality = quality
+                    this.referer = mainUrl
                 }
-            }
+            )
+        }
+
+        val detailsUrl =
+            "$apiBase/allVideoInfo/id/$extractedId"
+
+        runCatching {
+
+            app.get(detailsUrl)
+                .parsedSafe<Map<String, Any>>()
+                ?.let { detailsMap ->
+
+                    (detailsMap["translations"]
+                            as? List<Map<String, Any>>)
+                        ?.forEach { sub ->
+
+                            val file = sub["file"] as? String
+                            val lang = sub["name"] as? String
+
+                            if (file != null && lang != null) {
+                                subtitleCallback(
+                                    SubtitleFile(lang, file)
+                                )
+                            }
+                        }
+                }
         }
 
         return true
