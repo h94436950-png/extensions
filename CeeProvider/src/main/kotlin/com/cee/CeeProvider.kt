@@ -1,9 +1,7 @@
 package com.cee
 
-import android.util.Log
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.mvvm.logError
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.getQualityFromName
@@ -84,11 +82,6 @@ class CeeProvider : MainAPI() {
 
     data class VideoFilesResponse(
         @JsonProperty("items") val items: List<VideoFile>?
-    )
-
-    data class VideoGroup(
-        @JsonProperty("id") val id: String?,
-        @JsonProperty("title") val title: String?
     )
 
     private fun parseVideoFiles(text: String): List<VideoFile> {
