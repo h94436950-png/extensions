@@ -508,7 +508,7 @@ class CeeProvider : MainAPI() {
                         episodeDetails.imgObjUrl
                             ?: posterUrl
 
-                    this.description = ""
+                    this.description = null
                 }
 
                 seasonsMap
