@@ -496,7 +496,10 @@ class CeeProvider : MainAPI() {
 
                 val newEpisode = newEpisode(episodeId) {
 
-                    this.name = "الحلقة $episodeNum"
+                    this.name =
+                        episodeDetails.title
+                            ?: episodeDetails.enTitle
+                            ?: "الحلقة $episodeNum"
 
                     this.season = seasonNum
                     this.episode = episodeNum
@@ -504,10 +507,6 @@ class CeeProvider : MainAPI() {
                     this.posterUrl =
                         episodeDetails.imgObjUrl
                             ?: posterUrl
-
-                    this.description =
-                        episodeDetails.enContent
-                            ?: episodeDetails.arContent
                 }
 
                 seasonsMap
