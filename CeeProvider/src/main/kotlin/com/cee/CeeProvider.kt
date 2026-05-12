@@ -214,7 +214,6 @@ class CeeProvider : MainAPI() {
         val plot    = item.arContent?.takeIf { it.isNotBlank() } ?: item.enContent
         val tags    = item.toTags()
         val actors  = item.toActors()
-        val score   = item.stars?.toFloatOrNull()?.let { (it * 100).toInt() }
 
         return if (item.kind == "2") {
             // ── TV Series ──────────────────────────────────────────────────
@@ -244,7 +243,6 @@ class CeeProvider : MainAPI() {
                 this.tags      = tags
                 this.posterUrl = item.imgObjUrl
                 this.actors    = actors
-                this.score     = score
             }
         } else {
             // ── Movie ──────────────────────────────────────────────────────
@@ -254,7 +252,6 @@ class CeeProvider : MainAPI() {
                 this.tags      = tags
                 this.posterUrl = item.imgObjUrl
                 this.actors    = actors
-                this.score     = score
             }
         }
     }
