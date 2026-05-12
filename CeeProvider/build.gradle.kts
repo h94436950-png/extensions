@@ -15,7 +15,7 @@ cloudstream {
     status = 1
 
     tvTypes = listOf("Movie", "TvSeries")
-    iconUrl = "https://www.google.com/s2/favicons?domain=cee.buzz&sz=%size%"
+    iconUrl = "https://cee.buzz/favicon.ico"
     language = "ar"
 
     isCrossPlatform = true
