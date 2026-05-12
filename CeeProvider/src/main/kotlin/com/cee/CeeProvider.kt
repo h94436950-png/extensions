@@ -23,26 +23,13 @@ class CeeProvider : MainAPI() {
     // ── Main page sections ────────────────────────────────────────────────────
 
     override val mainPage = mainPageOf(
-        "$mainUrl/newlyVideosItems/level/0/offset/12/page/"
-                to "جديد",
-
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=views_desc&pageNumber="
-                to "أفلام - الأكثر مشاهدة",
-
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=views_desc&pageNumber="
-                to "مسلسلات - الأكثر مشاهدة",
-
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=stars_desc&pageNumber="
-                to "أفلام - الأعلى تقييماً",
-
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=stars_desc&pageNumber="
-                to "مسلسلات - الأعلى تقييماً",
-
-        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=asc&pageNumber="
-                to "أفلام - الأحدث",
-
-        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=asc&pageNumber="
-                to "مسلسلات - الأحدث",
+        "$mainUrl/newlyVideosItems/level/0/offset/12/page/" to "جديد",
+        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=views_desc&pageNumber=" to "أفلام - الأكثر مشاهدة",
+        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=views_desc&pageNumber=" to "مسلسلات - الأكثر مشاهدة",
+        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=stars_desc&pageNumber=" to "أفلام - الأعلى تقييماً",
+        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=stars_desc&pageNumber=" to "مسلسلات - الأعلى تقييماً",
+        "$apiBase/video/V/2?videoKind=1&langNb=&itemsPerPage=30&level=0&sortParam=asc&pageNumber=" to "أفلام - الأحدث",
+        "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&level=0&sortParam=asc&pageNumber=" to "مسلسلات - الأحدث",
     )
 
     // ── Data classes ──────────────────────────────────────────────────────────
@@ -50,6 +37,7 @@ class CeeProvider : MainAPI() {
     data class CinemanaItem(
         @JsonProperty("nb") val nb: String?,
         @JsonProperty("title") val title: String?,
+        @JsonProperty("en_title") val enTitle: String?,
         @JsonProperty("ar_title") val arTitle: String?,
         @JsonProperty("en_content") val enContent: String?,
         @JsonProperty("ar_content") val arContent: String?,
@@ -149,11 +137,12 @@ class CeeProvider : MainAPI() {
         val id = nb?.takeIf { it.isNotBlank() } ?: return null
 
         val label =
-            arTitle?.takeIf { it.isNotBlank() }
+            enTitle?.takeIf { it.isNotBlank() }
+                ?: arTitle?.takeIf { it.isNotBlank() }
                 ?: title
                 ?: return null
 
-        val type = if (kind == "2") TvType.TvSeries else TvType.Movie
+        val type = if (kind == "2" || kind?.toIntOrNull() == 2) TvType.TvSeries else TvType.Movie
         val url = "$mainUrl/details/$id"
 
         return if (type == TvType.TvSeries) {
@@ -222,6 +211,7 @@ class CeeProvider : MainAPI() {
         return CinemanaItem(
             nb = parsedNb,
             title = this["title"] as? String,
+            enTitle = this["en_title"] as? String,
             arTitle = this["ar_title"] as? String,
             enContent = this["en_content"] as? String,
             arContent = this["ar_content"] as? String,
@@ -317,8 +307,9 @@ class CeeProvider : MainAPI() {
 
         fun scoreItem(item: CinemanaItem): Int {
             val haystack = listOfNotNull(
-                item.title,
-                item.arTitle
+                item.enTitle,
+                item.arTitle,
+                item.title
             ).joinToString(" ").lowercase()
 
             return tokens.count {
@@ -346,7 +337,8 @@ class CeeProvider : MainAPI() {
         ) ?: return null
 
         val label =
-            item.arTitle?.takeIf { it.isNotBlank() }
+            item.enTitle?.takeIf { it.isNotBlank() }
+                ?: item.arTitle?.takeIf { it.isNotBlank() }
                 ?: item.title
                 ?: return null
 
@@ -357,7 +349,7 @@ class CeeProvider : MainAPI() {
         val tags = item.toTags()
         val actors = item.toActors()
 
-        return if (item.kind == "2") {
+        return if (item.kind == "2" || item.kind?.toIntOrNull() == 2) {
 
             val seasonsUrl = "$apiBase/videoSeason/id/$id"
 
@@ -369,25 +361,26 @@ class CeeProvider : MainAPI() {
                 emptyList()
             }
 
-            val sortedSeasonNumbers = seasonsData.sortedBy { it.season }
+            val episodes = seasonsData
+                .sortedBy { it.season }
+                .flatMap { seasonItem ->
+                    val seasonNum = seasonItem.season
 
-            val episodes = sortedSeasonNumbers.flatMap { seasonItem ->
-                val seasonNum = seasonItem.season
+                    (seasonItem.episodes ?: emptyList())
+                        .mapNotNull { ep ->
+                            val epNb =
+                                ep.nb?.takeIf { it.isNotBlank() }
+                                    ?: return@mapNotNull null
 
-                (seasonItem.episodes ?: emptyList())
-                    .mapNotNull { ep ->
-                        val epNb =
-                            ep.nb?.takeIf { it.isNotBlank() }
-                                ?: return@mapNotNull null
-
-                        newEpisode(epNb) {
-                            name = ep.title
-                            season = seasonNum
-                            episode = ep.episodeNummer
-                            posterUrl = ep.imgObjUrl
+                            newEpisode(epNb) {
+                                name = ep.title
+                                season = seasonNum
+                                episode = ep.episodeNummer
+                                posterUrl = ep.imgObjUrl
+                            }
                         }
-                    }.sortedBy { it.episode }
-            }
+                        .sortedBy { it.episode }
+                }
 
             newTvSeriesLoadResponse(
                 label,
