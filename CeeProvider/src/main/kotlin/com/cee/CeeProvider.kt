@@ -13,7 +13,7 @@ import java.net.URLEncoder
 class CeeProvider : MainAPI() {
 
     override var mainUrl = "https://cee.buzz"
-    override var name = "cee (🇮🇶)"
+    override var name = "CEE (\uD83C\uDDEE\uD83C\uDDF6)"
     override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
     override var lang = "ar"
     override val hasMainPage = true
@@ -416,7 +416,7 @@ class CeeProvider : MainAPI() {
                     name = actorName,
                     image = image
                 ),
-                roleString = actor.role
+                roleString = null
             )
 
         }?.takeIf { it.isNotEmpty() }
