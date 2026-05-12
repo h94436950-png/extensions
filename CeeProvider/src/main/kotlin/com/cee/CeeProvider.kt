@@ -39,6 +39,10 @@ class CeeProvider : MainAPI() {
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=en_title_asc" to "مسلسلات - أبجديًا (A-Z)",
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=views_desc" to "مسلسلات - الأكثر مشاهدة",
         "$apiBase/video/V/2?videoKind=2&langNb=&itemsPerPage=30&pageNumber=&level=0&sortParam=stars_desc" to "مسلسلات - أعلى تقييم IMDb",
+
+        // Turkish Series
+        "$apiBase/video/V/2?videoKind=2&langNb=25&itemsPerPage=30&pageNumber=&level=0&sortParam=desc" to "مسلسلات تركية",
+        "$apiBase/video/V/2?videoKind=2&langNb=25&category=Arabic%20dubbed&itemsPerPage=30&pageNumber=&level=0" to "مسلسلات تركية مدبلجة"
     )
 
     data class CinemanaItem(
@@ -508,7 +512,9 @@ class CeeProvider : MainAPI() {
                         episodeDetails.imgObjUrl
                             ?: posterUrl
 
-                    this.description = null
+                    this.description =
+                        episodeDetails.enContent
+                            ?: episodeDetails.arContent
                 }
 
                 seasonsMap
