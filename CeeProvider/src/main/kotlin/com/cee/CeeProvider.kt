@@ -504,7 +504,7 @@ class CeeProvider : MainAPI() {
 
                 val newEpisode = newEpisode(episodeId) {
 
-                    this.name = "S${seasonNum}E${episodeNum}"
+                    this.name = "الموسم ${seasonNum} - الحلقة ${episodeNum}
 
                     this.season = seasonNum
                     this.episode = episodeNum
