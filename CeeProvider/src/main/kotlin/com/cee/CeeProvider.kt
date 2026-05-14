@@ -65,7 +65,8 @@ class CeeProvider : MainAPI() {
         @JsonProperty("episodeNummer") val episodeNummer: String?,
         @JsonProperty("season") val season: String?,
         @JsonProperty("categories") val categories: List<Category>?,
-        @JsonProperty("actorsInfo") val actorsInfo: List<ActorInfo>?
+        @JsonProperty("actorsInfo") val actorsInfo: List<ActorInfo>?,
+        @JsonProperty("likeList") val likeList: List<Map<String, Any>>? = null   // <-- تمت الإضافة
     )
 
     data class ActorInfo(
@@ -144,6 +145,11 @@ class CeeProvider : MainAPI() {
             }
         }
 
+        // استخراج قائمة التوصيات (قد تأتي بمفتاح likeList أو related أو recommended)
+        val likeListRaw = (this["likeList"] as? List<Map<String, Any>>)
+            ?: (this["related"] as? List<Map<String, Any>>)
+            ?: (this["recommended"] as? List<Map<String, Any>>)
+
         return CinemanaItem(
             nb = parsedNb,
             title = this["title"] as? String,
@@ -162,7 +168,8 @@ class CeeProvider : MainAPI() {
             episodeNummer = this["episodeNummer"]?.toString(),
             season = this["season"]?.toString(),
             categories = categoriesParsed,
-            actorsInfo = actorsParsed
+            actorsInfo = actorsParsed,
+            likeList = likeListRaw   // <-- تمت الإضافة
         )
     }
 
@@ -473,6 +480,11 @@ class CeeProvider : MainAPI() {
         val actors =
             details.toActors() ?: emptyList()
 
+        // تحويل قائمة likeList إلى توصيات
+        val recommendations = details.likeList?.mapNotNull { recMap ->
+            recMap.toCinemanaItem().toSearchResponse()
+        }
+
         return if (details.kind == 2) {
 
             val seasonsUrl =
@@ -552,6 +564,8 @@ class CeeProvider : MainAPI() {
 
                 if (actors.isNotEmpty())
                     this.actors = actors
+
+                this.recommendations = recommendations   // <-- إضافة التوصيات
             }
 
         } else {
@@ -573,6 +587,8 @@ class CeeProvider : MainAPI() {
 
                 if (actors.isNotEmpty())
                     this.actors = actors
+
+                this.recommendations = recommendations   // <-- إضافة التوصيات
             }
         }
     }
