@@ -7,6 +7,7 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.cloudstream3.utils.newExtractorLink
 import java.net.URLEncoder
+import java.util.regex.Pattern
 
 class CeeProvider : MainAPI() {
 
@@ -66,7 +67,7 @@ class CeeProvider : MainAPI() {
         @JsonProperty("season") val season: String?,
         @JsonProperty("categories") val categories: List<Category>?,
         @JsonProperty("actorsInfo") val actorsInfo: List<ActorInfo>?,
-        @JsonProperty("likeList") val likeList: List<Map<String, Any>>? = null   // <-- تمت الإضافة
+        @JsonProperty("likeList") val likeList: List<Map<String, Any>>? = null
     )
 
     data class ActorInfo(
@@ -145,7 +146,6 @@ class CeeProvider : MainAPI() {
             }
         }
 
-        // استخراج قائمة التوصيات (قد تأتي بمفتاح likeList أو related أو recommended)
         val likeListRaw = (this["likeList"] as? List<Map<String, Any>>)
             ?: (this["related"] as? List<Map<String, Any>>)
             ?: (this["recommended"] as? List<Map<String, Any>>)
@@ -169,7 +169,7 @@ class CeeProvider : MainAPI() {
             season = this["season"]?.toString(),
             categories = categoriesParsed,
             actorsInfo = actorsParsed,
-            likeList = likeListRaw   // <-- تمت الإضافة
+            likeList = likeListRaw
         )
     }
 
@@ -480,10 +480,55 @@ class CeeProvider : MainAPI() {
         val actors =
             details.toActors() ?: emptyList()
 
-        // تحويل قائمة likeList إلى توصيات
-        val recommendations = details.likeList?.mapNotNull { recMap ->
+        // ================== استخراج التوصيات من HTML ==================
+        var recommendations: List<SearchResponse>? = null
+        
+        // أولاً: جرب من API إذا وجد likeList
+        val apiRecs = details.likeList?.mapNotNull { recMap ->
             recMap.toCinemanaItem().toSearchResponse()
         }
+        if (!apiRecs.isNullOrEmpty()) {
+            recommendations = apiRecs
+        } else {
+            // ثانياً: استخرج التوصيات من صفحة HTML مباشرة
+            try {
+                val htmlUrl = "$mainUrl/video/ar/$extractedId?show=true"
+                val html = app.get(htmlUrl).text
+                
+                // نمط Regex لاستخراج العناصر
+                val pattern = Pattern.compile(
+                    """id="group_video(\d+)".*?<p class="video-title[^"]*">(.*?)</p>.*?src="(https://[^"]+?)"""",
+                    Pattern.DOTALL
+                )
+                val matcher = pattern.matcher(html)
+                
+                val recList = mutableListOf<SearchResponse>()
+                while (matcher.find()) {
+                    val recId = matcher.group(1)
+                    val recTitle = matcher.group(2).trim()
+                    val recPoster = matcher.group(3)
+                    
+                    if (recId.isNotBlank() && recTitle.isNotBlank()) {
+                        val searchResponse = newMovieSearchResponse(
+                            name = recTitle,
+                            url = "$mainUrl/details/$recId",
+                            type = TvType.Movie
+                        ) {
+                            this.posterUrl = recPoster
+                        }
+                        recList.add(searchResponse)
+                    }
+                }
+                
+                if (recList.isNotEmpty()) {
+                    recommendations = recList
+                }
+            } catch (e: Exception) {
+                // في حالة فشل استخراج HTML، نترك التوصيات فارغة
+                e.printStackTrace()
+            }
+        }
+        // ============================================================
 
         return if (details.kind == 2) {
 
@@ -565,7 +610,7 @@ class CeeProvider : MainAPI() {
                 if (actors.isNotEmpty())
                     this.actors = actors
 
-                this.recommendations = recommendations   // <-- إضافة التوصيات
+                this.recommendations = recommendations
             }
 
         } else {
@@ -588,7 +633,7 @@ class CeeProvider : MainAPI() {
                 if (actors.isNotEmpty())
                     this.actors = actors
 
-                this.recommendations = recommendations   // <-- إضافة التوصيات
+                this.recommendations = recommendations
             }
         }
     }
